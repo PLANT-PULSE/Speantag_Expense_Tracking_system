@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Sales - Speantag Bakery{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-plus-circle me-2"></i>Record New Sale
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="item_name" class="form-label">Item Name</label>
+                        <input type="text" class="form-control" id="item_name" name="item_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quantity_sold" class="form-label">Quantity Sold</label>
+                        <input type="number" class="form-control" id="quantity_sold" name="quantity_sold" step="0.01" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="unit_price" class="form-label">Unit Price (₵)</label>
+                        <input type="number" class="form-control" id="unit_price" name="unit_price" step="0.01" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sale_date" class="form-label">Sale Date</label>
+                        <input type="date" class="form-control" id="sale_date" name="sale_date" value="{{ today }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Total Amount</label>
+                        <div class="form-control bg-light" id="total_amount_display">₵0.00</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save me-2"></i>Record Sale
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-list me-2"></i>Recent Sales (Current Month)
+            </div>
+            <div class="card-body">
+                {% if sales %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Item</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Total Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in sales %}
+                            <tr>
+                                <td>{{ sale.sale_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ sale.item_name }}</td>
+                                <td>{{ sale.quantity_sold }}</td>
+                                <td>₵{{ "%.2f"|format(sale.unit_price) }}</td>
+                                <td>₵{{ "%.2f"|format(sale.total_amount) }}</td>
+                                <td>
+                                    <a href="{{ url_for('delete_sale', sale_id=sale.id) }}" 
+                                       class="btn btn-danger btn-sm"
+                                       onclick="return confirm('Are you sure you want to delete this sale?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No sales recorded for this month yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Set today's date as default
+    $('#sale_date').val(new Date().toISOString().split('T')[0]);
+    
+    // Calculate total amount
+    function calculateTotal() {
+        const quantity = parseFloat($('#quantity_sold').val()) || 0;
+        const unitPrice = parseFloat($('#unit_price').val()) || 0;
+        const total = quantity * unitPrice;
+        $('#total_amount_display').text('₵' + total.toFixed(2));
+    }
+    
+    $('#quantity_sold, #unit_price').on('input', calculateTotal);
+    
+    // Auto-calculate on page load
+    calculateTotal();
+});
+</script>
+{% endblock %} 

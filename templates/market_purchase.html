@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Market Purchase - Speantag Bakery{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-shopping-cart me-2"></i>Record Market Purchase
+            </div>
+            <div class="card-body">
+                <form method="POST" id="purchaseForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="total_amount_taken" class="form-label">Total Amount Taken (₵)</label>
+                                <input type="number" class="form-control" id="total_amount_taken" name="total_amount_taken" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="purchase_date" class="form-label">Purchase Date</label>
+                                <input type="date" class="form-control" id="purchase_date" name="purchase_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Purchase Items</label>
+                        <div id="itemsContainer">
+                            <div class="item-row row mb-2">
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control" name="item_name[]" placeholder="Item name" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="number" class="form-control quantity-input" name="quantity_purchased[]" placeholder="Qty" step="0.01" min="0" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="number" class="form-control price-input" name="unit_price[]" placeholder="Unit price" step="0.01" min="0" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-control bg-light total-display">₵0.00</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-warning btn-sm" id="addItemBtn">
+                            <i class="fas fa-plus me-1"></i>Add Another Item
+                        </button>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Total Spent</label>
+                            <div class="form-control bg-light" id="total_spent_display">₵0.00</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Remaining Balance</label>
+                            <div class="form-control bg-light" id="remaining_balance_display">₵0.00</div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save me-2"></i>Record Purchase
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-history me-2"></i>Recent Purchases (Current Month)
+            </div>
+            <div class="card-body">
+                {% if purchases %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount Taken</th>
+                                <th>Amount Spent</th>
+                                <th>Remaining</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for purchase in purchases %}
+                            <tr>
+                                <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') }}</td>
+                                <td>₵{{ "%.2f"|format(purchase.total_amount_taken) }}</td>
+                                <td>₵{{ "%.2f"|format(purchase.total_amount_spent) }}</td>
+                                <td>₵{{ "%.2f"|format(purchase.remaining_balance) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No purchases recorded for this month yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Set today's date as default
+    $('#purchase_date').val(new Date().toISOString().split('T')[0]);
+    
+    // Add new item row
+    $('#addItemBtn').click(function() {
+        const newRow = `
+            <div class="item-row row mb-2">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" name="item_name[]" placeholder="Item name" required>
+                </div>
+                <div class="col-md-3">
+                    <input type="number" class="form-control quantity-input" name="quantity_purchased[]" placeholder="Qty" step="0.01" min="0" required>
+                </div>
+                <div class="col-md-3">
+                    <input type="number" class="form-control price-input" name="unit_price[]" placeholder="Unit price" step="0.01" min="0" required>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-control bg-light total-display">₵0.00</div>
+                </div>
+            </div>
+        `;
+        $('#itemsContainer').append(newRow);
+    });
+    
+    // Calculate totals
+    function calculateTotals() {
+        let totalSpent = 0;
+        
+        $('.item-row').each(function() {
+            const quantity = parseFloat($(this).find('.quantity-input').val()) || 0;
+            const price = parseFloat($(this).find('.price-input').val()) || 0;
+            const total = quantity * price;
+            
+            $(this).find('.total-display').text('₵' + total.toFixed(2));
+            totalSpent += total;
+        });
+        
+        const amountTaken = parseFloat($('#total_amount_taken').val()) || 0;
+        const remainingBalance = amountTaken - totalSpent;
+        
+        $('#total_spent_display').text('₵' + totalSpent.toFixed(2));
+        $('#remaining_balance_display').text('₵' + remainingBalance.toFixed(2));
+    }
+    
+    // Bind events
+    $(document).on('input', '.quantity-input, .price-input', calculateTotals);
+    $('#total_amount_taken').on('input', calculateTotals);
+    
+    // Initial calculation
+    calculateTotals();
+});
+</script>
+{% endblock %} 

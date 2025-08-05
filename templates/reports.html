@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Speantag Bakery{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-filter me-2"></i>Filter Reports
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row">
+                    <div class="col-md-4">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <div>
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search me-1"></i>Filter
+                            </button>
+                            <a href="{{ url_for('export_excel', start_date=start_date, end_date=end_date) }}" class="btn btn-success me-2">
+                                <i class="fas fa-file-excel me-1"></i>Export Excel
+                            </a>
+                            <a href="{{ url_for('export_pdf', start_date=start_date, end_date=end_date) }}" class="btn btn-danger">
+                                <i class="fas fa-file-pdf me-1"></i>Export PDF
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h3>₵{{ "%.2f"|format(total_revenue) }}</h3>
+            <p><i class="fas fa-chart-line me-1"></i>Total Revenue</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h3>₵{{ "%.2f"|format(total_expenses) }}</h3>
+            <p><i class="fas fa-shopping-cart me-1"></i>Total Expenses</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h3>₵{{ "%.2f"|format(total_cost_used) }}</h3>
+            <p><i class="fas fa-box-open me-1"></i>Cost Used</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h3>₵{{ "%.2f"|format(net_profit) }}</h3>
+            <p><i class="fas fa-chart-bar me-1"></i>Net Profit</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-line me-2"></i>Sales Summary
+            </div>
+            <div class="card-body">
+                {% if sales %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Item</th>
+                                <th>Quantity</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in sales %}
+                            <tr>
+                                <td>{{ sale.sale_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ sale.item_name }}</td>
+                                <td>{{ sale.quantity_sold }}</td>
+                                <td>₵{{ "%.2f"|format(sale.total_amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No sales recorded for this period.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-shopping-cart me-2"></i>Purchase Summary
+            </div>
+            <div class="card-body">
+                {% if purchases %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount Taken</th>
+                                <th>Amount Spent</th>
+                                <th>Remaining</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for purchase in purchases %}
+                            <tr>
+                                <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') }}</td>
+                                <td>₵{{ "%.2f"|format(purchase.total_amount_taken) }}</td>
+                                <td>₵{{ "%.2f"|format(purchase.total_amount_spent) }}</td>
+                                <td>₵{{ "%.2f"|format(purchase.remaining_balance) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No purchases recorded for this period.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-box-open me-2"></i>Inventory Usage Summary
+            </div>
+            <div class="card-body">
+                {% if usage_records %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Item</th>
+                                <th>Quantity Used</th>
+                                <th>Cost Used</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usage in usage_records %}
+                            <tr>
+                                <td>{{ usage.usage_date.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% for item in current_inventory %}
+                                        {% if item.id == usage.inventory_item_id %}
+                                            {{ item.item_name }}
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                                <td>{{ usage.quantity_used }}</td>
+                                <td>₵{{ "%.2f"|format(usage.cost_used) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No usage records for this period.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-boxes me-2"></i>Current Inventory Status
+            </div>
+            <div class="card-body">
+                {% if current_inventory %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Total Quantity</th>
+                                <th>Remaining</th>
+                                <th>Cost/Unit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in current_inventory %}
+                            <tr>
+                                <td>{{ item.item_name }}</td>
+                                <td>{{ item.total_quantity }}</td>
+                                <td>{{ item.remaining_quantity }}</td>
+                                <td>₵{{ "%.2f"|format(item.cost_per_unit) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No inventory items available.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Set default date range if not provided
+    if (!$('#start_date').val()) {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        $('#start_date').val(firstDay.toISOString().split('T')[0]);
+    }
+    
+    if (!$('#end_date').val()) {
+        $('#end_date').val(new Date().toISOString().split('T')[0]);
+    }
+});
+</script>
+{% endblock %} 
