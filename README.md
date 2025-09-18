@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🍞 Speantag Bakery Expense & Inventory Tracking System
 
 **Motto: "Making food medicinal for your health"**
@@ -197,3 +198,6 @@ For technical support or questions about the system, please contact your IT cons
 ---
 
 **Speantag Bakery** - Making food medicinal for your health 🍞❤️ # Speantag_Expense_Tracking_system
+=======
+# Speantag_Expense_Tracking_system
+>>>>>>> ac9a4cc264e73e8aa9da340bafd36c0edbde91d1
