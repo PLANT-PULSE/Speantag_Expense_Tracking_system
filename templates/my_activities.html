@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}My Saved Activities - Speantag Bakery{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4"><i class="fas fa-history me-2"></i>My Saved Activities</h2>
+        </div>
+    </div>
+
+    {% if activities_by_date %}
+        {% for date, activities in activities_by_date.items() %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-calendar-day me-2"></i>{{ date.strftime('%B %d, %Y') }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for activity in activities %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="activity-card">
+                                    <div class="activity-header">
+                                        <h6>{{ activity.page_name.replace('-', ' ')|title }}</h6>
+                                        <small class="text-muted">{{ activity.saved_at.strftime('%H:%M') }}</small>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="mb-2">
+                                            <strong>Activities:</strong>
+                                            {{ (activity.activities_data | from_json | length) }} recorded
+                                        </p>
+                                        {% if activity.notes %}
+                                        <p class="mb-2">
+                                            <strong>Notes:</strong> {{ activity.notes }}
+                                        </p>
+                                        {% endif %}
+                                        <a href="{{ url_for('view_saved_activity', activity_id=activity.id) }}"
+                                           class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye me-1"></i>View Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No Saved Activities</h4>
+                        <p class="text-muted">You haven't saved any activities yet. Use the "Save Activities" button on any page to save your work.</p>
+                        <a href="{{ url_for('index') }}" class="btn btn-primary">
+                            <i class="fas fa-home me-1"></i>Go to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.activity-card {
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    padding: 15px;
+    background: #f8f9fa;
+    transition: box-shadow 0.3s ease;
+}
+
+.activity-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 8px;
+}
+
+.activity-header h6 {
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.activity-content p {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}

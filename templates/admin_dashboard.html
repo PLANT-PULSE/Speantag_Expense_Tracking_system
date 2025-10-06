@@ -1,0 +1,548 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Speantag Bakery{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h1>
+        <div class="dashboard-actions">
+            <a href="{{ url_for('admin_logout') }}" class="btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+
+    <!-- Financial Overview Cards -->
+    <div class="stats-grid">
+        <div class="stat-card income">
+            <div class="stat-icon">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+            <div class="stat-content">
+                <h3>₵{{ "%.2f"|format(total_income) }}</h3>
+                <p>Total Income</p>
+            </div>
+        </div>
+        <div class="stat-card expenses">
+            <div class="stat-icon">
+                <i class="fas fa-arrow-down"></i>
+            </div>
+            <div class="stat-content">
+                <h3>₵{{ "%.2f"|format(total_expenses) }}</h3>
+                <p>Total Expenses</p>
+            </div>
+        </div>
+        <div class="stat-card balance">
+            <div class="stat-icon">
+                <i class="fas fa-balance-scale"></i>
+            </div>
+            <div class="stat-content">
+                <h3>₵{{ "%.2f"|format(balance) }}</h3>
+                <p>Balance/Savings</p>
+            </div>
+        </div>
+        <div class="stat-card profit">
+            <div class="stat-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stat-content">
+                <h3>₵{{ "%.2f"|format(profit_loss) }}</h3>
+                <p>Profit/Loss</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Filter and Export -->
+    <div class="filter-section">
+        <div class="filter-form">
+            <form method="GET" class="filter-controls">
+                <div class="filter-group">
+                    <label for="start_date">Start Date</label>
+                    <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="filter-group">
+                    <label for="end_date">End Date</label>
+                    <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="filter-group">
+                    <label for="search">Search Transactions</label>
+                    <input type="text" id="search" name="search" placeholder="Search by description...">
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn-filter">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                    <a href="{{ url_for('export_excel', start_date=start_date, end_date=end_date) }}" class="btn-export">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </a>
+                    <a href="{{ url_for('export_pdf', start_date=start_date, end_date=end_date) }}" class="btn-export">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-section">
+        <div class="chart-container">
+            <h3>Category Breakdown</h3>
+            <canvas id="categoryChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Monthly Comparison</h3>
+            <canvas id="monthlyChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="transactions-section">
+        <div class="section-header">
+            <h3>Recent Transactions</h3>
+            <button class="btn-add-transaction" onclick="showAddTransactionModal()">
+                <i class="fas fa-plus"></i> Add Transaction
+            </button>
+        </div>
+        <div class="transactions-table-container">
+            <table class="transactions-table" id="transactionsTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td>{{ transaction.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ transaction.description }}</td>
+                        <td>{{ transaction.category }}</td>
+                        <td class="amount {{ transaction.type }}">₵{{ "%.2f"|format(transaction.amount) }}</td>
+                        <td>
+                            <span class="type-badge {{ transaction.type }}">
+                                {{ transaction.type.title() }}
+                            </span>
+                        </td>
+                        <td class="actions">
+                            <button class="btn-edit" onclick="editTransaction({{ loop.index }})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-delete" onclick="deleteTransaction({{ loop.index }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Monthly Summary -->
+    <div class="summary-section">
+        <h3>Monthly Summary</h3>
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h4>{{ monthly_summary.current_month }}</h4>
+                <p class="summary-amount">₵{{ "%.2f"|format(monthly_summary.current_income) }}</p>
+                <p class="summary-label">Current Month Income</p>
+            </div>
+            <div class="summary-card">
+                <h4>{{ monthly_summary.prev_month }}</h4>
+                <p class="summary-amount">₵{{ "%.2f"|format(monthly_summary.prev_income) }}</p>
+                <p class="summary-label">Previous Month Income</p>
+            </div>
+            <div class="summary-card growth {{ 'positive' if monthly_summary.growth >= 0 else 'negative' }}">
+                <h4>Growth</h4>
+                <p class="summary-amount">{{ "%.1f"|format(monthly_summary.growth) }}%</p>
+                <p class="summary-label">Month-over-Month</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security & Activity Monitoring Section -->
+    <div class="security-section">
+        <h3><i class="fas fa-shield-alt"></i> Security & Activity Monitoring</h3>
+
+        <!-- Security Stats -->
+        <div class="security-stats">
+            <div class="security-stat">
+                <span class="stat-number">{{ unresolved_alerts|length }}</span>
+                <span class="stat-label">Unresolved Alerts</span>
+                <span class="alert-indicator {{ 'critical' if unresolved_alerts|length > 0 else 'normal' }}"></span>
+            </div>
+            <div class="security-stat">
+                <span class="stat-number">{{ high_risk_activities|length }}</span>
+                <span class="stat-label">High Risk Activities</span>
+            </div>
+            <div class="security-stat">
+                <span class="stat-number">{{ suspicious_ips|length }}</span>
+                <span class="stat-label">Suspicious IPs</span>
+            </div>
+        </div>
+
+        <!-- Fraud Alerts -->
+        <div class="fraud-alerts-section">
+            <h4>Fraud Alerts</h4>
+            <div class="alerts-container">
+                {% for alert in fraud_alerts[:10] %}
+                <div class="alert-item {{ 'resolved' if alert.resolved else alert.severity }}">
+                    <div class="alert-header">
+                        <span class="alert-type">{{ alert.alert_type.replace('_', ' ')|title }}</span>
+                        <span class="alert-severity {{ alert.severity }}">{{ alert.severity|title }}</span>
+                        {% if not alert.resolved %}
+                        <form method="POST" action="{{ url_for('resolve_alert', alert_id=alert.id) }}" style="display: inline;">
+                            <button type="submit" class="btn-resolve">Resolve</button>
+                        </form>
+                        {% else %}
+                        <span class="resolved-badge">Resolved</span>
+                        {% endif %}
+                    </div>
+                    <div class="alert-details">
+                        <p>{{ alert.description }}</p>
+                        <div class="alert-meta">
+                            <span><i class="fas fa-clock"></i> {{ alert.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                            <span><i class="fas fa-globe"></i> {{ alert.ip_address or 'Unknown' }}</span>
+                            {% if alert.user_id %}
+                                {% set alert_user = users | selectattr('id', 'equalto', alert.user_id) | list | first %}
+                                <span><i class="fas fa-user"></i> {{ alert_user.name if alert_user else 'Unknown' }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if not fraud_alerts %}
+                <div class="no-alerts">
+                    <i class="fas fa-check-circle"></i>
+                    <p>No fraud alerts detected</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- User Sessions -->
+        <div class="user-sessions-section">
+            <h4>Active User Sessions</h4>
+            <div class="sessions-container">
+                {% for session_id, session_data in user_sessions.items() %}
+                <div class="session-item">
+                    <div class="session-header">
+                        <span class="session-user">{{ session_data.user_name }}</span>
+                        <span class="session-status {{ 'active' if not session_data.logout_time else 'ended' }}">
+                            {{ 'Active' if not session_data.logout_time else 'Ended' }}
+                        </span>
+                    </div>
+                    <div class="session-details">
+                        <div class="session-times">
+                            <span><i class="fas fa-sign-in-alt"></i> Login: {{ session_data.login_time.strftime('%H:%M') if session_data.login_time else 'Unknown' }}</span>
+                            {% if session_data.logout_time %}
+                            <span><i class="fas fa-sign-out-alt"></i> Logout: {{ session_data.logout_time.strftime('%H:%M') }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="session-info">
+                            <span><i class="fas fa-globe"></i> {{ session_data.ip_address or 'Unknown IP' }}</span>
+                            <span><i class="fas fa-list"></i> {{ session_data.activities|length }} activities</span>
+                        </div>
+                    </div>
+                    <div class="session-activities">
+                        {% for activity in session_data.activities[:5] %}
+                        <div class="activity-item {{ activity.risk_level }}">
+                            <span class="activity-time">{{ activity.timestamp.strftime('%H:%M') }}</span>
+                            <span class="activity-action">{{ activity.action }}</span>
+                            <span class="risk-indicator {{ activity.risk_level }}"></span>
+                        </div>
+                        {% endfor %}
+                        {% if session_data.activities|length > 5 %}
+                        <div class="activity-item more">... and {{ session_data.activities|length - 5 }} more activities</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities Timeline -->
+    <div class="activities-timeline-section">
+        <h3>Recent Activities Timeline</h3>
+        <div class="timeline-container">
+            {% for activity in activities[:20] %}
+            <div class="timeline-item {{ activity.risk_level }}">
+                <div class="timeline-marker {{ activity.risk_level }}"></div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-user">
+                            {% if activity.user_id %}
+                                {% set act_user = users | selectattr('id', 'equalto', activity.user_id) | list | first %}
+                                {{ act_user.name if act_user else 'Unknown User' }}
+                            {% else %}
+                                System/Admin
+                            {% endif %}
+                        </span>
+                        <span class="timeline-time">{{ activity.timestamp.strftime('%H:%M:%S') }}</span>
+                        <span class="timeline-date">{{ activity.timestamp.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                    <div class="timeline-action">
+                        <span class="action-type">{{ activity.action }}</span>
+                        {% if activity.details %}
+                        <p class="action-details">{{ activity.details }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="timeline-meta">
+                        <span><i class="fas fa-globe"></i> {{ activity.ip_address or 'Unknown' }}</span>
+                        {% if activity.session_id %}
+                        <span><i class="fas fa-link"></i> Session: {{ activity.session_id[:8] }}...</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- User Management Section -->
+    <div class="user-management-section">
+        <h3>User Management</h3>
+        <div class="user-stats">
+            <div class="user-stat">
+                <span class="stat-number">{{ total_users }}</span>
+                <span class="stat-label">Total Users</span>
+            </div>
+            <div class="user-stat">
+                <span class="stat-number">{{ active_users_today }}</span>
+                <span class="stat-label">Active Today</span>
+            </div>
+        </div>
+        <div class="users-table-container">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Joined</th>
+                        <th>Last Activity</th>
+                        <th>Risk Level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <span class="role-badge {{ 'admin' if user.is_admin else 'user' }}">
+                                {{ 'Admin' if user.is_admin else 'User' }}
+                            </span>
+                        </td>
+                        <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            {% set last_activity = activities | selectattr('user_id', 'equalto', user.id) | list | first if activities else None %}
+                            {{ last_activity.timestamp.strftime('%Y-%m-%d %H:%M') if last_activity else 'Never' }}
+                        </td>
+                        <td>
+                            {% set user_activities = activities | selectattr('user_id', 'equalto', user.id) | list %}
+                            {% set high_risk_count = user_activities | selectattr('risk_level', 'in', ['high', 'critical']) | list | length %}
+                            <span class="risk-badge {{ 'high' if high_risk_count > 0 else 'low' }}">
+                                {{ 'High' if high_risk_count > 0 else 'Low' }} ({{ high_risk_count }})
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Transaction Modal -->
+<div id="addTransactionModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4>Add New Transaction</h4>
+            <span class="close" onclick="closeAddTransactionModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="addTransactionForm">
+                <div class="form-group">
+                    <label for="transactionDate">Date</label>
+                    <input type="date" id="transactionDate" name="date" required>
+                </div>
+                <div class="form-group">
+                    <label for="transactionDescription">Description</label>
+                    <input type="text" id="transactionDescription" name="description" required>
+                </div>
+                <div class="form-group">
+                    <label for="transactionCategory">Category</label>
+                    <select id="transactionCategory" name="category" required>
+                        <option value="">Select Category</option>
+                        <option value="Sales">Sales</option>
+                        <option value="Purchases">Purchases</option>
+                        <option value="Inventory Usage">Inventory Usage</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="transactionAmount">Amount</label>
+                    <input type="number" id="transactionAmount" name="amount" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="transactionType">Type</label>
+                    <select id="transactionType" name="type" required>
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">Add Transaction</button>
+                    <button type="button" class="btn-cancel" onclick="closeAddTransactionModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Chart.js initialization
+document.addEventListener('DOMContentLoaded', function() {
+    // Category Breakdown Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    const categoryData = {
+        labels: {{ category_breakdown.keys() | list | tojson }},
+        datasets: [{
+            data: {{ category_breakdown.values() | list }},
+            backgroundColor: [
+                '#8B4513',
+                '#DEB887',
+                '#D2691E',
+                '#FF8C00'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: categoryData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '₵' + context.parsed.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Monthly Comparison Chart
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    const monthlyData = {
+        labels: ['{{ monthly_summary.prev_month }}', '{{ monthly_summary.current_month }}'],
+        datasets: [{
+            label: 'Income',
+            data: [{{ monthly_summary.prev_income }}, {{ monthly_summary.current_income }}],
+            backgroundColor: '#8B4513',
+            borderColor: '#8B4513',
+            borderWidth: 1
+        }]
+    };
+
+    new Chart(monthlyCtx, {
+        type: 'bar',
+        data: monthlyData,
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₵' + value.toFixed(2);
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '₵' + context.parsed.y.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Search functionality
+    const searchInput = document.getElementById('search');
+    const transactionsTable = document.getElementById('transactionsTable');
+    const rows = transactionsTable.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    searchInput.addEventListener('keyup', function() {
+        const filter = searchInput.value.toLowerCase();
+        for (let i = 0; i < rows.length; i++) {
+            const cells = rows[i].getElementsByTagName('td');
+            let found = false;
+            for (let j = 0; j < cells.length; j++) {
+                if (cells[j].textContent.toLowerCase().indexOf(filter) > -1) {
+                    found = true;
+                    break;
+                }
+            }
+            rows[i].style.display = found ? '' : 'none';
+        }
+    });
+});
+
+// Modal functions
+function showAddTransactionModal() {
+    document.getElementById('addTransactionModal').style.display = 'block';
+}
+
+function closeAddTransactionModal() {
+    document.getElementById('addTransactionModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('addTransactionModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Transaction management functions
+function editTransaction(index) {
+    alert('Edit functionality for transaction ' + index + ' will be implemented');
+}
+
+function deleteTransaction(index) {
+    if (confirm('Are you sure you want to delete this transaction?')) {
+        alert('Delete functionality for transaction ' + index + ' will be implemented');
+    }
+}
+
+// Form submission
+document.getElementById('addTransactionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    alert('Add transaction functionality will be implemented with backend integration');
+    closeAddTransactionModal();
+});
+</script>
+{% endblock %}

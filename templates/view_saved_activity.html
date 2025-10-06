@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Activity Details - Speantag Bakery{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('my_activities') }}">My Activities</a></li>
+                    <li class="breadcrumb-item active">{{ saved_activity.page_name.replace('-', ' ')|title }}</li>
+                </ol>
+            </nav>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4><i class="fas fa-file-alt me-2"></i>{{ saved_activity.page_name.replace('-', ' ')|title }} Activities</h4>
+                            <small class="text-muted">Saved on {{ saved_activity.saved_at.strftime('%B %d, %Y at %H:%M') }}</small>
+                        </div>
+                        <a href="{{ url_for('my_activities') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Activities
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if saved_activity.notes %}
+                    <div class="alert alert-info">
+                        <strong>Notes:</strong> {{ saved_activity.notes }}
+                    </div>
+                    {% endif %}
+
+                    <div class="activity-summary mb-4">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="summary-box">
+                                    <h5>{{ activities_data|length }}</h5>
+                                    <p>Total Activities</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="summary-box">
+                                    <h5>{{ activities_data|selectattr('risk_level', 'equalto', 'high')|list|length + activities_data|selectattr('risk_level', 'equalto', 'critical')|list|length }}</h5>
+                                    <p>High Risk Actions</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="summary-box">
+                                    <h5>{{ activities_data|selectattr('action', 'equalto', 'Login')|list|length }}</h5>
+                                    <p>Login Events</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="summary-box">
+                                    <h5>{{ activities_data|selectattr('action', 'equalto', 'Logout')|list|length }}</h5>
+                                    <p>Logout Events</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mb-3">Activity Timeline</h5>
+                    <div class="timeline">
+                        {% for activity in activities_data %}
+                        <div class="timeline-item {{ activity.risk_level }}">
+                            <div class="timeline-marker {{ activity.risk_level }}"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <span class="timeline-action">{{ activity.action }}</span>
+                                    <span class="timeline-time">
+                                        {{ activity.timestamp|strptime('%Y-%m-%dT%H:%M:%S.%f')|strftime('%H:%M:%S') }}
+                                    </span>
+                                </div>
+                                {% if activity.details %}
+                                <div class="timeline-details">
+                                    {{ activity.details }}
+                                </div>
+                                {% endif %}
+                                <div class="timeline-meta">
+                                    {% if activity.ip_address %}
+                                    <span><i class="fas fa-globe"></i> {{ activity.ip_address }}</span>
+                                    {% endif %}
+                                    <span class="risk-badge {{ activity.risk_level }}">
+                                        {{ activity.risk_level|title }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.summary-box {
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+}
+
+.summary-box h5 {
+    margin: 0;
+    font-size: 2rem;
+    color: var(--primary-color);
+}
+
+.summary-box p {
+    margin: 5px 0 0 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+    padding-left: 40px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -22px;
+    top: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.timeline-marker.low { background: var(--success-color); }
+.timeline-marker.medium { background: var(--warning-color); }
+.timeline-marker.high { background: #ff6b35; }
+.timeline-marker.critical { background: var(--danger-color); }
+
+.timeline-content {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    border-left: 3px solid;
+}
+
+.timeline-item.low .timeline-content { border-left-color: var(--success-color); }
+.timeline-item.medium .timeline-content { border-left-color: var(--warning-color); }
+.timeline-item.high .timeline-content { border-left-color: #ff6b35; }
+.timeline-item.critical .timeline-content { border-left-color: var(--danger-color); }
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.timeline-action {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.timeline-time {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.timeline-details {
+    margin-bottom: 10px;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+.timeline-meta {
+    display: flex;
+    gap: 15px;
+    font-size: 0.8rem;
+    color: #777;
+}
+
+.timeline-meta span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.risk-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.risk-badge.low {
+    background: #d4edda;
+    color: var(--success-color);
+}
+
+.risk-badge.medium {
+    background: #fff3cd;
+    color: var(--warning-color);
+}
+
+.risk-badge.high {
+    background: #f8d7da;
+    color: #dc3545;
+}
+
+.risk-badge.critical {
+    background: #f5c6cb;
+    color: var(--danger-color);
+}
+</style>
+{% endblock %}
